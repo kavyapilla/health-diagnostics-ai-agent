@@ -12,3 +12,4 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Say hello in one sentence."}]
 )
 st.write(response.choices[0].message.content)
+#kavya
