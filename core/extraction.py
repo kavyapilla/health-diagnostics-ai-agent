@@ -79,11 +79,8 @@ Raw text:
 
 
 if __name__ == "__main__":
-    test_path = "data/test_reports/report_01_drlogy_cbc.pdf"
+    test_path = "data/test_reports/report_02_drlogy_lipid.pdf"
     text = extract_text_from_pdf(test_path)
-
-    print("--- EXTRACTED TEXT ---")
-    print(text)
 
     print("\n--- STRUCTURED DATA ---")
     structured = parse_text_to_structured_data(text)
