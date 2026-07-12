@@ -1,0 +1,7 @@
+Parameter,Result,Flag,Reference_Range,Unit
+Cholesterol Total,250.00,High,<200.00,mg/dL
+Triglycerides,100.00,Normal,<150.00,mg/dL
+HDL Cholesterol,50.00,Normal,>40.00,mg/dL
+LDL Cholesterol,190.00,High,<100.00,mg/dL
+VLDL Cholesterol,10.00,Normal,<30.00,mg/dL
+Non-HDL Cholesterol,100.00,Normal,<130.00,mg/dL
