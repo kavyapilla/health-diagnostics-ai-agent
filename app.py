@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from core.extraction import extract_text, parse_text_to_structured_data
 from core.validation import validate_report
+from core.pattern_analysis import analyze_patterns
 
 load_dotenv()
 
@@ -62,6 +63,16 @@ if uploaded_file is not None:
         with st.expander(f"⚠️ {validation_result['total_invalid']} parameter(s) could not be validated"):
             for item in validation_result["invalid_parameters"]:
                 st.write(f"**{item['parameter']['parameter']}**: {item['reason']}")
+
+    # Pattern & Risk Analysis
+    findings = analyze_patterns(valid_params)
+    if findings:
+        st.divider()
+        st.subheader("🔍 Pattern & Risk Analysis")
+        for f in findings:
+            risk_color = {"Low": "🟢", "Moderate": "🟡", "High": "🔴"}.get(f["risk_level"], "⚪")
+            st.write(f"{risk_color} **{f['pattern']}**: {f['value']} — *{f['risk_level']} Risk*")
+            st.caption(f["explanation"])
 
     st.divider()
     st.caption("This is an AI-generated interpretation and is not a substitute for professional medical advice.")
