@@ -1,9 +1,34 @@
 import pdfplumber
+from PIL import Image
+import pytesseract
+import json
+from groq import Groq
+from pydantic import BaseModel
+from typing import List
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Point pytesseract to the Tesseract install location on Windows
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+
+class BloodParameter(BaseModel):
+    parameter: str
+    result: str
+    flag: str  # "Normal", "High", "Low", "Borderline"
+    reference_range: str
+    unit: str
+
+
+class ExtractedReport(BaseModel):
+    parameters: List[BloodParameter]
+
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """
     Extracts raw text from a PDF file using pdfplumber.
-    Returns the full text content as a single string.
     """
     full_text = ""
     with pdfplumber.open(pdf_path) as pdf:
@@ -14,31 +39,26 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     return full_text
 
 
-if __name__ == "__main__":
-    # Quick manual test - run this file directly to check extraction works
-    test_path = "data/test_reports/report_01_drlogy_cbc.pdf"
-    text = extract_text_from_pdf(test_path)
-    print("--- EXTRACTED TEXT ---")
-    print(text)
+def extract_text_from_image(image_path: str) -> str:
+    """
+    Extracts text from an image file (PNG/JPG) using Tesseract OCR.
+    """
+    image = Image.open(image_path)
+    text = pytesseract.image_to_string(image)
+    return text
 
-import json
-from groq import Groq
-from pydantic import BaseModel
-from typing import List
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-class BloodParameter(BaseModel):
-    parameter: str
-    result: str
-    flag: str  # "Normal", "High", "Low", "Borderline"
-    reference_range: str
-    unit: str
-
-class ExtractedReport(BaseModel):
-    parameters: List[BloodParameter]
+def extract_text(file_path: str) -> str:
+    """
+    Unified extraction function - detects file type and routes to
+    the correct extraction method (PDF text extraction or OCR).
+    """
+    if file_path.lower().endswith(".pdf"):
+        return extract_text_from_pdf(file_path)
+    elif file_path.lower().endswith((".png", ".jpg", ".jpeg")):
+        return extract_text_from_image(file_path)
+    else:
+        raise ValueError(f"Unsupported file type: {file_path}")
 
 
 def parse_text_to_structured_data(raw_text: str) -> ExtractedReport:
@@ -48,7 +68,7 @@ def parse_text_to_structured_data(raw_text: str) -> ExtractedReport:
     """
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-    prompt = f"""You are a medical data extraction assistant. Below is raw text extracted from a blood test report PDF. Extract every test parameter into structured JSON.
+    prompt = f"""You are a medical data extraction assistant. Below is raw text extracted from a blood test report. Extract every test parameter into structured JSON.
 
 For each parameter found, extract:
 - parameter: the test name (e.g., "Hemoglobin (Hb)")
@@ -58,6 +78,7 @@ For each parameter found, extract:
 - unit: the unit shown (e.g., "g/dL")
 
 Ignore headers, lab info, doctor names, instrument info, and any non-parameter text.
+IMPORTANT: This text may come from OCR and could have columns separated or misaligned (e.g., all parameter names listed first, followed by all values, followed by all reference ranges, in separate blocks rather than side-by-side). Carefully match each parameter name to its correct corresponding result value and reference range based on their ORDER of appearance, not just proximity. Section headers like "RBC COUNT" or "WBC COUNT" are category labels, not parameter names themselves - use the actual sub-item name instead (e.g., "Total RBC count", not "RBC COUNT"). If you cannot confidently match a parameter to its value, exclude it rather than guessing.
 
 Return ONLY valid JSON in this exact format, nothing else:
 {{"parameters": [{{"parameter": "...", "result": "...", "flag": "...", "reference_range": "...", "unit": "..."}}]}}
@@ -79,8 +100,10 @@ Raw text:
 
 
 if __name__ == "__main__":
-    test_path = "data/test_reports/report_02_drlogy_lipid.pdf"
-    text = extract_text_from_pdf(test_path)
+    test_path = "data/test_reports/report_03_cbc_scanned.png"
+    text = extract_text(test_path)
+    print("--- OCR EXTRACTED TEXT ---")
+    print(text)
 
     print("\n--- STRUCTURED DATA ---")
     structured = parse_text_to_structured_data(text)

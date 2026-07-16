@@ -72,10 +72,10 @@ def validate_report(parameters: List[BloodParameter]) -> dict:
 
 
 if __name__ == "__main__":
-    from core.extraction import extract_text_from_pdf, parse_text_to_structured_data
+    from core.extraction import extract_text, parse_text_to_structured_data
 
-    test_path = "data/test_reports/report_01_drlogy_cbc.pdf"
-    text = extract_text_from_pdf(test_path)
+    test_path = "data/test_reports/report_03_cbc_scanned.png"
+    text = extract_text(test_path)
     structured = parse_text_to_structured_data(text)
 
     result = validate_report(structured.parameters)
