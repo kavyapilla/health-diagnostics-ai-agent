@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from core.extraction import extract_text, parse_text_to_structured_data
 from core.validation import validate_report
 from core.pattern_analysis import analyze_patterns
+from core.context_analysis import apply_context
 
 load_dotenv()
 
@@ -13,6 +14,13 @@ st.title("🩸 Health Diagnostics AI")
 st.write("Upload your blood report to get an AI-powered interpretation and personalized health recommendations.")
 
 st.divider()
+
+with st.expander("👤 Add your details for more personalized results (optional)"):
+    col1, col2 = st.columns(2)
+    with col1:
+        user_age = st.number_input("Age", min_value=0, max_value=120, value=None, placeholder="e.g. 28")
+    with col2:
+        user_gender = st.selectbox("Gender", options=["Prefer not to say", "Male", "Female"])
 
 uploaded_file = st.file_uploader(
     "Upload your blood report",
@@ -63,6 +71,16 @@ if uploaded_file is not None:
         with st.expander(f"⚠️ {validation_result['total_invalid']} parameter(s) could not be validated"):
             for item in validation_result["invalid_parameters"]:
                 st.write(f"**{item['parameter']['parameter']}**: {item['reason']}")
+
+    # Contextual Analysis (if user provided gender)
+    if user_gender != "Prefer not to say":
+        context_notes = apply_context(valid_params, age=user_age, gender=user_gender)
+        if context_notes:
+            st.divider()
+            st.subheader("👤 Personalized Interpretation")
+            for note in context_notes:
+                st.write(f"**{note['parameter']}**: {note['original_flag']} → **{note['adjusted_flag']}**")
+                st.caption(note['explanation'])
 
     # Pattern & Risk Analysis
     findings = analyze_patterns(valid_params)
