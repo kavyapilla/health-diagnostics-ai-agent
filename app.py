@@ -6,6 +6,7 @@ from core.validation import validate_report
 from core.pattern_analysis import analyze_patterns
 from core.context_analysis import apply_context
 from core.synthesis import synthesize_findings
+from core.report import generate_pdf_report
 
 load_dotenv()
 
@@ -111,9 +112,22 @@ if uploaded_file is not None:
                 st.subheader("📋 Summary")
                 st.write(synthesis.summary)
 
-                st.subheader("✅ Personalized Recommendations")
-                for rec in synthesis.recommendations:
-                    st.write(f"• {rec}")
+                st.divider()
+                pdf_bytes = generate_pdf_report(
+                    valid_params,
+                    findings,
+                    context_notes_for_synthesis,
+                    synthesis.summary,
+                    synthesis.recommendations,
+                    age=user_age,
+                    gender=user_gender if user_gender != "Prefer not to say" else None
+                )
+                st.download_button(
+                    label="📄 Download Full Report (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"health_report_{uploaded_file.name.split('.')[0]}.pdf",
+                    mime="application/pdf"
+                )
             except Exception as e:
                 st.warning(f"Could not generate summary at this time: {e}")
 
