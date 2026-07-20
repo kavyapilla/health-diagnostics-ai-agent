@@ -5,6 +5,7 @@ from core.extraction import extract_text, parse_text_to_structured_data
 from core.validation import validate_report
 from core.pattern_analysis import analyze_patterns
 from core.context_analysis import apply_context
+from core.synthesis import synthesize_findings
 
 load_dotenv()
 
@@ -73,6 +74,8 @@ if uploaded_file is not None:
                 st.write(f"**{item['parameter']['parameter']}**: {item['reason']}")
 
     # Contextual Analysis (if user provided gender)
+    # Contextual Analysis (if user provided gender)
+    context_notes = []
     if user_gender != "Prefer not to say":
         context_notes = apply_context(valid_params, age=user_age, gender=user_gender)
         if context_notes:
@@ -91,6 +94,28 @@ if uploaded_file is not None:
             risk_color = {"Low": "🟢", "Moderate": "🟡", "High": "🔴"}.get(f["risk_level"], "⚪")
             st.write(f"{risk_color} **{f['pattern']}**: {f['value']} — *{f['risk_level']} Risk*")
             st.caption(f["explanation"])
+
+    # Synthesis & Recommendations
+    if len(valid_params) > 0:
+        st.divider()
+        with st.spinner("Generating your personalized summary..."):
+            try:
+                context_notes_for_synthesis = context_notes if user_gender != "Prefer not to say" else []
+                synthesis = synthesize_findings(
+                    valid_params,
+                    findings,
+                    context_notes_for_synthesis,
+                    age=user_age,
+                    gender=user_gender if user_gender != "Prefer not to say" else None
+                )
+                st.subheader("📋 Summary")
+                st.write(synthesis.summary)
+
+                st.subheader("✅ Personalized Recommendations")
+                for rec in synthesis.recommendations:
+                    st.write(f"• {rec}")
+            except Exception as e:
+                st.warning(f"Could not generate summary at this time: {e}")
 
     st.divider()
     st.caption("This is an AI-generated interpretation and is not a substitute for professional medical advice.")
