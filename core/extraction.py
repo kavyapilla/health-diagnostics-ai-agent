@@ -87,16 +87,22 @@ Raw text:
 {raw_text}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0,
-        response_format={"type": "json_object"}
-    )
-
-    raw_json = response.choices[0].message.content
-    data = json.loads(raw_json)
-    return ExtractedReport(**data)
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=4096,
+            response_format={"type": "json_object"}
+        )
+        raw_json = response.choices[0].message.content
+        data = json.loads(raw_json)
+        return ExtractedReport(**data)
+    except Exception:
+        # If the LLM fails to produce valid JSON (e.g. because the document
+        # has no relevant medical parameters, or is too large/malformed),
+        # treat it the same as "no parameters found" rather than crashing.
+        return ExtractedReport(parameters=[])
 
 
 if __name__ == "__main__":
